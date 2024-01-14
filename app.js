@@ -2,8 +2,16 @@ const express = require("express");
 const app = express();
 const port = 8080;
 const cors = require("cors");
+const { MongoClient } = require("mongodb");
 
-const products = require("./sampleData.json");
+// Connection URL
+const url = "mongodb://localhost:27017";
+const client = new MongoClient(url);
+
+(async () => {
+  await client.connect();
+})();
+const db = client.db("products");
 
 app.use(cors());
 
@@ -11,29 +19,16 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-app.get("/products", function (req, res, next) {
-  res.json({ products: products });
+app.get("/products",  function (req, res, next) {
+  res.json({ error: "Product type not specified" });
 });
 
-app.get("/products/:product_type", function (req, res, next) {
+app.get("/products/:product_type",async function (req, res, next) {
   const productType = req.params.product_type;
-  let data = [];
+  const collection = db.collection(productType);
+  const findResult = await collection.find({}).toArray();
 
-  if (productType) {
-    switch (productType) {
-      case "cakes":
-        data = products["cakes"];
-        break;
-      case "street_food":
-        data = products["street_food"];
-        break;
-      case "coffee_and_tea":
-        data = products["coffee_and_tea"];
-        break;
-    }
-  }
-
-  res.json({ products: data || products });
+  res.json({ products: findResult });
 });
 
 app.listen(port, () => {
